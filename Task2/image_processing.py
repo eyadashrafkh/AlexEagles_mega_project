@@ -34,8 +34,23 @@ def separate_colors(image, num_clusters):
     
     return masked_image, mask
 
+# Function to crop the image based on contours
+def crop_contour(image, contours):
+    cropped_images = []
+    for contour in contours:
+        # Create a bounding rectangle around the contour
+        x, y, w, h = cv2.boundingRect(contour)
+        
+        # Crop the image using the bounding rectangle coordinates
+        cropped_image = image[y:y+h, x:x+w]
+        
+        # Add the cropped image to the list
+        cropped_images.append(cropped_image)
+    
+    return cropped_images
+
 # Directory containing the images
-image_directory = 'New folder\Inference_data'
+image_directory = 'Task2\images_samples_from_camera'
 
 # Size to resize the images
 resize_size = (640, 640)
@@ -43,7 +58,7 @@ resize_size = (640, 640)
 # Number of clusters for KMeans clustering
 num_clusters = 3
 
-# Read images from the directory, resize, and remove background
+# Read images from the directory, resize, remove background, and crop contour areas
 for filename in os.listdir(image_directory):
     if filename.endswith('.jpg') or filename.endswith('.png'):
         image_path = os.path.join(image_directory, filename)
@@ -57,26 +72,17 @@ for filename in os.listdir(image_directory):
         # Remove background color using KMeans clustering
         masked_image, mask = separate_colors(resized_image, num_clusters)
         
-        # Convert the masked image to grayscale
+        # Convert the mask to grayscale
         grayscale_image = cv2.cvtColor(masked_image, cv2.COLOR_BGR2GRAY)
         
-        # Apply thresholding to obtain binary image
-        _, binary_image = cv2.threshold(grayscale_image, 1, 255, cv2.THRESH_BINARY)
+        # Apply thresholding to obtain binary mask
+        _, binary_mask = cv2.threshold(grayscale_image, 1, 255, cv2.THRESH_BINARY)
         
-        # Find contours in the binary image
-        contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # Find contours in the binary mask
+        contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         # Crop contour areas
-        cropped_images = []
-        for contour in contours:
-            # Create a bounding rectangle around the contour
-            x, y, w, h = cv2.boundingRect(contour)
-            
-            # Crop the image using the bounding rectangle coordinates
-            cropped_image = resized_image[y:y+h, x:x+w]
-            
-            # Add the cropped image to the list
-            cropped_images.append(cropped_image)
+        cropped_images = crop_contour(resized_image, contours)
         
         # Display the cropped contour areas
         for i, cropped_image in enumerate(cropped_images):
